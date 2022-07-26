@@ -14,7 +14,7 @@ case $1 in
     # $4 my name
 
   'ssh1')
-    ssh -i "evandrake-dob-pair.pem" centos@ec2-54-210-215-29.compute-1.amazonaws.com
+    ssh -i evandrake-dob-pair.pem centos@ec2-54-210-215-29.compute-1.amazonaws.com
     ;;
 
   'ssh2')
