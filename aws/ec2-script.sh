@@ -39,9 +39,11 @@ case $1 in
     echo
     echo YOU NOW HAVE 10 SECONDS TO CTRL-C BEFORE IT IS GONE FOREVER
     sleep 10
-    aws-vault exec $2 -- $ aws ec2 terminate-instances --instance-ids $3
+    aws-vault exec "$2" -- aws ec2 terminate-instances --instance-ids "$3"
     echo
     echo ITS GONE NOW
     ;;
+    # $2 dev environment
+    # $3 ID
 
 esac
