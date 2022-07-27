@@ -16,7 +16,7 @@ case $1 in
     # $4 my name
 
   'ssh1')
-    ssh -i evandrake-dob-pair.pem centos@ec2-54-210-215-29.compute-1.amazonaws.com
+    ssh -i "evandrake-dob-pair.pem" centos@ec2-54-147-253-18.compute-1.amazonaws.com
     exit
     ;;
 
@@ -55,16 +55,14 @@ case $1 in
 
 esac
 
-if [[ $1 = '^h(elp)' | $1 = * ]]; then
-  echo
-  echo run-instance [ID]
-  echo
-  echo name [enviornment] [ID] [your name]
-  echo
-  echo ssh[1|2] <- configure to your instance
-  echo
-  echo stop <- [enviornment] [ID]
-  echo
-  echo perm-delete [enviornment] [ID]
-  echo
-fi
+echo
+echo run-instance [keyname]
+echo
+echo name [enviornment] [ID] [your name]
+echo
+echo "ssh[1|2] <- configure to your instance"
+echo
+echo "stop <- [enviornment] [ID]"
+echo
+echo perm-delete [enviornment] [ID]
+echo
