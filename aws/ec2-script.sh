@@ -5,78 +5,97 @@ function scp_up {
   scp -i $AWS_KEY -r 'setup' $SSH_LOC:~
 }
 
-function get_dns () {
+function get_dns {
   DNS=$( aws-vault exec $1 -- aws ec2 describe-instances --instance-ids $2 | yq '.Reservations[0] .Instances[0].NetworkInterfaces[0].Association.PublicDnsName' )
 }
+
+function file_index {
+  if [[ ! -f JSON_FILE[0] ]]; then
+    return 0
+  elif [[ ! -f JSON_FILE[1] ]]; then
+    return 1
+  else
+    echo ERROR: BOTH FILES EXIST
+    exit
+}
+
+JSON_FILE=['ins.json', 'ins2.json']
 
 # now included in script git
 case $1 in
   'run-instance')
     aws-vault exec dev-sandbox -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $2 \
-      --security-groups evandrake-bootcamp > ins.json
+      --security-groups evandrake-bootcamp > $JSON_FILE[$(file_index)]
     exit
     ;;
     # $2 keypair
 
   'name')
-    ID=$(cat ins.json | jq '.Instances[0] .InstanceId' | tr -d '"')
+    ID=$(cat $JSON_FILE[$4] | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws-vault exec $2 -- aws ec2 create-tags --resources $ID --tags "Key=Name,Value=$3"
     scp_up
     exit
     ;;
     # $2 enviornment
     # $3 my name
+    # serv #
 
   'ssh')
-    ID=$(cat ins.json | jq '.Instances[0] .InstanceId' | tr -d '"')
+    ID=$(cat $JSON_FILE[$3] | jq '.Instances[0] .InstanceId' | tr -d '"')
     get_dns $2 $ID
     echo $DNS
     ssh -i $AWS_KEY 'centos@'${DNS}
     exit
     ;;
-
+    # enviornment
+    # serv #
+    
   'stop')
-    ID=$(cat ins.json | jq '.Instances[0] .InstanceId' | tr -d '"')
+    ID=$(cat $JSON_FILE[$4] | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws-vault exec $2 -- aws ec2 stop-instances --instance-ids $ID
     exit
     ;;
     # $2 ex: dev-sandbox
     # $3 ID
+    # serv #
 
   'start')
-    ID=$(cat ins.json | jq '.Instances[0] .InstanceId' | tr -d '"')
+    ID=$(cat $JSON_FILE[$4] | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws-vault exec $2 -- aws ec2 start-instances --instance-ids $ID
     exit
     ;;
     # $2 ex: dev-sandbox
     # $3 ID
+    # serv #
 
   'perm-delete')
     # CAREFULL
-    ID=$(cat ins.json | jq '.Instances[0] .InstanceId' | tr -d '"')
+    ID=$(cat $JSON_FILE[$4] | jq '.Instances[0] .InstanceId' | tr -d '"')
     echo CAREFULL MORON YOU ARE DELETING YOUR SERV "$ID"
     echo
     echo YOU NOW HAVE 10 SECONDS TO CTRL-C BEFORE IT IS GONE FOREVER
     sleep 10
     aws-vault exec "$2" -- aws ec2 terminate-instances --instance-ids "$ID"
+    rm $JSON_FILE[$4]
     echo
     echo ITS GONE NOW
     exit
     ;;
     # $2 dev environment
     # $3 ID
+    # 4 serv #
 
 esac
 
 echo
 echo run-instance [keyname]
 echo
-echo name [enviornment] [your name]
+echo name [enviornment] [your name] [serv #]
 echo      - should now also upload \'setup\' dir to serv
 echo
-echo "ssh[1|2] <- configure to your instance"
+echo "ssh[1|2] [serv #]<- configure to your instance"
 echo
-echo "stop <- [enviornment]"
+echo "stop <- [enviornment] [serv #]"
 echo
-echo perm-delete [enviornment]
+echo perm-delete [enviornment] [serv #]
 echo
