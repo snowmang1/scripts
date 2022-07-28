@@ -17,6 +17,7 @@ function file_index {
   else
     echo ERROR: BOTH FILES EXIST
     exit
+  fi
 }
 
 JSON_FILE=['ins.json', 'ins2.json']
