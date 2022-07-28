@@ -20,7 +20,7 @@ function file_index {
   fi
 }
 
-JSON_FILE=['ins.json', 'ins2.json']
+JSON_FILE=('ins.json', 'ins2.json')
 
 # now included in script git
 case $1 in
