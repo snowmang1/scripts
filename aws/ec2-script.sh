@@ -20,19 +20,20 @@ function file_index {
   fi
 }
 
-JSON_FILE=('ins.json', 'ins2.json')
+JSON_FILE=(ins.json ins2.json)
 
 # now included in script git
 case $1 in
   'run-instance')
-    aws-vault exec dev-sandbox -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $2 \
-      --security-groups evandrake-bootcamp > $JSON_FILE[$(file_index)]
+    aws-vault exec dev-sandbox -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count $3 --instance-type t2.micro --key-name  $2 \
+      --security-groups evandrake-bootcamp > ${JSON_FILE[$(file_index)]}
     exit
     ;;
     # $2 keypair
+    # 3 how many?
 
   'name')
-    ID=$(cat $JSON_FILE[$4] | jq '.Instances[0] .InstanceId' | tr -d '"')
+    ID=$(cat ${JSON_FILE[$4]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws-vault exec $2 -- aws ec2 create-tags --resources $ID --tags "Key=Name,Value=$3"
     scp_up
     exit
@@ -42,7 +43,7 @@ case $1 in
     # serv #
 
   'ssh')
-    ID=$(cat $JSON_FILE[$3] | jq '.Instances[0] .InstanceId' | tr -d '"')
+    ID=$(cat ${JSON_FILE[$3]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     get_dns $2 $ID
     echo $DNS
     ssh -i $AWS_KEY 'centos@'${DNS}
@@ -52,7 +53,7 @@ case $1 in
     # serv #
     
   'stop')
-    ID=$(cat $JSON_FILE[$4] | jq '.Instances[0] .InstanceId' | tr -d '"')
+    ID=$(cat ${ JSON_FILE[$4] } | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws-vault exec $2 -- aws ec2 stop-instances --instance-ids $ID
     exit
     ;;
@@ -61,7 +62,7 @@ case $1 in
     # serv #
 
   'start')
-    ID=$(cat $JSON_FILE[$4] | jq '.Instances[0] .InstanceId' | tr -d '"')
+    ID=$(cat ${ JSON_FILE[$4] } | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws-vault exec $2 -- aws ec2 start-instances --instance-ids $ID
     exit
     ;;
@@ -71,25 +72,24 @@ case $1 in
 
   'perm-delete')
     # CAREFULL
-    ID=$(cat $JSON_FILE[$4] | jq '.Instances[0] .InstanceId' | tr -d '"')
+    ID=$(cat ${JSON_FILE[$3]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     echo CAREFULL MORON YOU ARE DELETING YOUR SERV "$ID"
     echo
     echo YOU NOW HAVE 10 SECONDS TO CTRL-C BEFORE IT IS GONE FOREVER
     sleep 10
     aws-vault exec "$2" -- aws ec2 terminate-instances --instance-ids "$ID"
-    rm $JSON_FILE[$4]
+    rm ${JSON_FILE[$3]}
     echo
     echo ITS GONE NOW
     exit
     ;;
     # $2 dev environment
-    # $3 ID
     # 4 serv #
 
 esac
 
 echo
-echo run-instance [keyname]
+echo run-instance [keyname] [how many?]
 echo
 echo name [enviornment] [your name] [serv #]
 echo      - should now also upload \'setup\' dir to serv
