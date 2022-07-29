@@ -10,33 +10,32 @@ function get_dns {
 }
 
 function file_index {
-  if [[ ! -f JSON_FILE[0] ]]; then
-    return 0
-  elif [[ ! -f JSON_FILE[1] ]]; then
-    return 1
+  if [[ ! -f ./${JSON_FILE[0]} ]]; then
+    INDEX=0
+  elif [[ ! -f ./${JSON_FILE[1]} ]]; then
+    INDEX=1
   else
     echo ERROR: BOTH FILES EXIST
     exit
   fi
 }
 
-JSON_FILE=(ins.json ins2.json)
+JSON_FILE=('ins.json' 'ins2.json')
+INDEX=0
 
 # now included in script git
 case $1 in
   'run-instance')
-    if [[ -z $3 ]]; then
-      $3=1
-    fi
-    aws-vault exec dev-sandbox -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count $3 --instance-type t2.micro --key-name  $2 \
-      --security-groups evandrake-bootcamp > ${JSON_FILE[$(file_index)]}
+    file_index  # must run at the begining of every time we dynamically check JSON_FILE
+    aws-vault exec dev-sandbox -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $2 \
+      --security-groups evandrake-bootcamp --user-data file://user-script.sh > ${JSON_FILE[$INDEX]}
     exit
     ;;
     # $2 keypair
     # 3 how many?
 
   'name')
-    ID=$(cat ${JSON_FILE[$4]} | jq '.Instances[0] .InstanceId' | tr -d '"')
+    ID=$(cat ./${JSON_FILE[$4]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws-vault exec $2 -- aws ec2 create-tags --resources $ID --tags "Key=Name,Value=$3"
     scp_up
     exit
@@ -94,12 +93,12 @@ esac
 echo
 echo run-instance [keyname] [how many?]
 echo
-echo name [enviornment] [your name] [serv #]
+echo name [enviornment] [your name] [serv \#]
 echo      - should now also upload \'setup\' dir to serv
 echo
 echo "ssh[1|2] [serv #]<- configure to your instance"
 echo
 echo "stop <- [enviornment] [serv #]"
 echo
-echo perm-delete [enviornment] [serv #]
+echo perm-delete [enviornment] [serv \#]
 echo
