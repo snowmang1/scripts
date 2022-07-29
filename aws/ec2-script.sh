@@ -2,7 +2,7 @@
 AWS_KEY=evandrake-dob-pair.pem
 
 function scp_up {
-  scp -i $AWS_KEY -r 'setup' $1
+  scp -i $AWS_KEY -r './setup' 'centos@'$1':~'
 }
 
 function get_dns {
@@ -35,9 +35,9 @@ case $1 in
     # 3 how many?
 
   'name')
-    ID=$(cat ./${JSON_FILE[$4]} | jq '.Instances[0] .InstanceId' | tr -d '"')
-    aws-vault exec $2 -- aws ec2 create-tags --resources $ID --tags "Key=Name,Value=$3"
-    get_dns $4 $ID
+    ID=$(cat ./${JSON_FILE[$4]} | jq '.Instances[0] .InstanceId' | tr -d '"') &&
+    aws-vault exec $2 -- aws ec2 create-tags --resources ${ID} --tags "Key=Name,Value=$3"
+    get_dns $2 $ID
     scp_up $DNS
     exit
     ;;
