@@ -25,7 +25,7 @@ INDEX=0
 
 # now included in script git
 case $1 in
-  'run-instance')
+  'create-instance')
     file_index  # must run at the begining of every time we dynamically check JSON_FILE
     aws-vault exec dev-sandbox -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $2 \
       --security-groups evandrake-bootcamp --user-data file://user-script.sh > ${JSON_FILE[$INDEX]}
@@ -92,7 +92,7 @@ case $1 in
 esac
 
 echo
-echo run-instance [keyname] [how many?]
+echo create-instance [keyname] [how many?]
 echo
 echo name [enviornment] [your name] [serv \#]
 echo      - should now also upload \'setup\' dir to serv
