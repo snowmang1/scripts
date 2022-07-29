@@ -27,12 +27,13 @@ INDEX=0
 case $1 in
   'create-instance')
     file_index  # must run at the begining of every time we dynamically check JSON_FILE
-    aws-vault exec dev-sandbox -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $2 \
+    aws-vault exec $2 -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $3 \
       --security-groups evandrake-bootcamp --user-data file://user-script.sh > ${JSON_FILE[$INDEX]}
     exit
     ;;
-    # 2 keypair
-    # 3 how many?
+    # 2 dev environment ex: dev-sandbox
+    # 3 keypair
+    # 4 how many?
 
   'name')
     ID=$(cat ./${JSON_FILE[$4]} | jq '.Instances[0] .InstanceId' | tr -d '"')
@@ -41,7 +42,7 @@ case $1 in
     scp_up $DNS
     exit
     ;;
-    # 2 enviornment
+    # 2 dev environment ex: dev-sandbox
     # 3 my name
     # 4 serv #
 
@@ -52,7 +53,7 @@ case $1 in
     ssh -i $AWS_KEY 'centos@'${DNS}
     exit
     ;;
-    # 2 enviornment
+    # 2 dev environnment ex: dev-sandbox
     # 3 serv #
     
   'stop')
@@ -60,7 +61,7 @@ case $1 in
     aws-vault exec $2 -- aws ec2 stop-instances --instance-ids $ID
     exit
     ;;
-    # 2 ex: dev-sandbox
+    # 2 dev environment ex: dev-sandbox
     # 3 ID
     # 4 serv #
 
@@ -86,20 +87,23 @@ case $1 in
     echo ITS GONE NOW
     exit
     ;;
-    # 2 dev environment
+    # 2 dev environment ex: dev-sandbox
     # 4 serv #
 
 esac
 
 echo
-echo create-instance [key pair name] [how many?]
+echo create-instance [dev environment] [key pair name] [how many?]
 echo
-echo name [enviornment] [your name] [serv \#]
+echo name [dev environment] [your name] [serv \#]
 echo      - should now also upload \'setup\' dir to serv
+echo      - [serv \#] specifies name of json file saved during create-instance
 echo
 echo "ssh[1|2] [serv #]<- configure to your instance"
 echo
-echo "stop <- [environment] [serv #]"
+echo "start <- [dev environment] [serv #]"
 echo
-echo perm-delete [environment] [serv \#]
+echo "stop <- [dev environment] [serv #]"
+echo
+echo perm-delete [dev environment] [serv \#]
 echo
