@@ -92,14 +92,14 @@ case $1 in
 esac
 
 echo
-echo create-instance [keyname] [how many?]
+echo create-instance [key pair name] [how many?]
 echo
 echo name [enviornment] [your name] [serv \#]
 echo      - should now also upload \'setup\' dir to serv
 echo
 echo "ssh[1|2] [serv #]<- configure to your instance"
 echo
-echo "stop <- [enviornment] [serv #]"
+echo "stop <- [environment] [serv #]"
 echo
-echo perm-delete [enviornment] [serv \#]
+echo perm-delete [environment] [serv \#]
 echo
