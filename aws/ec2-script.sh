@@ -25,6 +25,9 @@ JSON_FILE=(ins.json ins2.json)
 # now included in script git
 case $1 in
   'run-instance')
+    if [[ -z $3 ]]; then
+      $3=1
+    fi
     aws-vault exec dev-sandbox -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count $3 --instance-type t2.micro --key-name  $2 \
       --security-groups evandrake-bootcamp > ${JSON_FILE[$(file_index)]}
     exit
