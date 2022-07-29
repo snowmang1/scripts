@@ -31,7 +31,7 @@ case $1 in
       --security-groups evandrake-bootcamp --user-data file://user-script.sh > ${JSON_FILE[$INDEX]}
     exit
     ;;
-    # $2 keypair
+    # 2 keypair
     # 3 how many?
 
   'name')
@@ -41,9 +41,9 @@ case $1 in
     scp_up $DNS
     exit
     ;;
-    # $2 enviornment
-    # $3 my name
-    # serv #
+    # 2 enviornment
+    # 3 my name
+    # 4 serv #
 
   'ssh')
     ID=$(cat ${JSON_FILE[$3]} | jq '.Instances[0] .InstanceId' | tr -d '"')
@@ -52,26 +52,26 @@ case $1 in
     ssh -i $AWS_KEY 'centos@'${DNS}
     exit
     ;;
-    # enviornment
-    # serv #
+    # 2 enviornment
+    # 3 serv #
     
   'stop')
     ID=$(cat ${ JSON_FILE[$4] } | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws-vault exec $2 -- aws ec2 stop-instances --instance-ids $ID
     exit
     ;;
-    # $2 ex: dev-sandbox
-    # $3 ID
-    # serv #
+    # 2 ex: dev-sandbox
+    # 3 ID
+    # 4 serv #
 
   'start')
     ID=$(cat ${ JSON_FILE[$4] } | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws-vault exec $2 -- aws ec2 start-instances --instance-ids $ID
     exit
     ;;
-    # $2 ex: dev-sandbox
-    # $3 ID
-    # serv #
+    # 2 ex: dev-sandbox
+    # 3 ID
+    # 4 serv #
 
   'perm-delete')
     # CAREFULL
@@ -86,7 +86,7 @@ case $1 in
     echo ITS GONE NOW
     exit
     ;;
-    # $2 dev environment
+    # 2 dev environment
     # 4 serv #
 
 esac
