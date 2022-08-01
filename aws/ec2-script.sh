@@ -28,13 +28,6 @@ function file_index {
 
 function setup {
   # this will use gum to create a config file
-  NAME=$(gum input --placeholder "name")
-  ENV=$(gum input --placeholder "enviornment")
-  echo name:        >>    $CONFIG
-  echo "    "$NAME  >>    $CONFIG
-  echo env:         >>    $CONFIG
-  echo "    "$ENV   >>    $CONFIG
-  exit
 }
 
 JSON_FILE=('ins.json' 'ins2.json')
