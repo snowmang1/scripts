@@ -56,7 +56,7 @@ case $1 in
     # 3 serv #
     
   'stop')
-    ID=$(cat ${ JSON_FILE[$4] } | jq '.Instances[0] .InstanceId' | tr -d '"')
+    ID=$(cat ${JSON_FILE[$4]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws-vault exec $2 -- aws ec2 stop-instances --instance-ids $ID
     exit
     ;;
@@ -65,7 +65,7 @@ case $1 in
     # 4 serv #
 
   'start')
-    ID=$(cat ${ JSON_FILE[$4] } | jq '.Instances[0] .InstanceId' | tr -d '"')
+    ID=$(cat ${JSON_FILE[$4]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws-vault exec $2 -- aws ec2 start-instances --instance-ids $ID
     exit
     ;;
