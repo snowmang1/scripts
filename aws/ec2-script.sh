@@ -4,7 +4,8 @@ CONFIG=config.yml
 
 if [[ -f $CONFIG ]]; then
   NAME=$( cat $CONFIG | yq '.name' )
-  ENV=$(  cat $CONFIG | yq '.env' )
+  ENV=$(  cat $CONFIG | yq '.env'  )
+  KEY=$(  cat $CONFIG | yq '.key'  )
 fi
 
 function scp_up {
@@ -27,95 +28,101 @@ function file_index {
 }
 
 function setup {
+  # check that if gum is installed
+  if ! which gum > /dev/null ; then
+    echo you need to install gum
+    echo try: brew install gum
+    exit
+  fi
   # this will use gum to create a config file
+  NAME=$(gum input --placeholder "name")
+  ENV=$(gum input --placeholder "enviornment")
+  KEY=$(gum input --placeholder "key pair minus the '.pem'")
+  echo name:        >>    $CONFIG
+  echo "    "$NAME  >>    $CONFIG
+  echo env:         >>    $CONFIG
+  echo "    "$ENV   >>    $CONFIG
+  echo key:         >>    $CONFIG
+  echo "    "$KEY   >>    $CONFIG
+  exit
 }
 
 JSON_FILE=('ins.json' 'ins2.json')
 INDEX=0
 
-setup # CHANGE
+if [[ ! -f config.yml ]]; then
+  setup
+fi
 
-# now included in script git
 case $1 in
   'c'|'create-instance')
     file_index  # must run at the begining of every time we dynamically check JSON_FILE
-    aws-vault exec $2 -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $3 \
+    aws-vault exec $ENV -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $KEY_PAIR \
       --security-groups evandrake-bootcamp --user-data file://user-script.sh > ${JSON_FILE[$INDEX]}
     exit
     ;;
-    # 2 dev environment ex: dev-sandbox
-    # 3 keypair
-    # 4 how many?
 
   'n'|'name')
-    ID=$(cat ./${JSON_FILE[$4]} | jq '.Instances[0] .InstanceId' | tr -d '"') &&
-    aws-vault exec $2 -- aws ec2 create-tags --resources ${ID} --tags "Key=Name,Value=$3"
-    get_dns $2 $ID
+    ID=$(cat ./${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"') &&
+    aws-vault exec $ENV -- aws ec2 create-tags --resources ${ID} --tags "Key=Name,Value=$NAME"
+    get_dns $ENV $ID
     scp_up $DNS
     exit
     ;;
-    # 2 dev environment ex: dev-sandbox
-    # 3 my name
-    # 4 serv #
+    # 2 serv #
 
   'ssh')
-    ID=$(cat ${JSON_FILE[$3]} | jq '.Instances[0] .InstanceId' | tr -d '"')
-    get_dns $2 $ID
+    ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
+    get_dns $ENV $ID
     echo $DNS
     ssh -i $AWS_KEY 'centos@'$DNS
     exit
     ;;
-    # 2 dev environnment ex: dev-sandbox
-    # 3 serv #
+    # 2 serv #
     
   'stop')
-    ID=$(cat ${JSON_FILE[$4]} | jq '.Instances[0] .InstanceId' | tr -d '"')
-    aws-vault exec $2 -- aws ec2 stop-instances --instance-ids $ID
+    ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
+    aws-vault exec $ENV -- aws ec2 stop-instances --instance-ids $ID
     exit
     ;;
-    # 2 dev environment ex: dev-sandbox
-    # 3 ID
-    # 4 serv #
+    # 2 serv #
 
   'start')
-    ID=$(cat ${JSON_FILE[$4]} | jq '.Instances[0] .InstanceId' | tr -d '"')
-    aws-vault exec $2 -- aws ec2 start-instances --instance-ids $ID
+    ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
+    aws-vault exec $DEV -- aws ec2 start-instances --instance-ids $ID
     exit
     ;;
-    # 2 ex: dev-sandbox
-    # 3 ID
-    # 4 serv #
+    # 2 serv #
 
   'perm-delete')
     # CAREFULL
-    ID=$(cat ${JSON_FILE[$3]} | jq '.Instances[0] .InstanceId' | tr -d '"')
+    ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     echo CAREFULL MORON YOU ARE DELETING YOUR SERV "$ID"
     echo
     echo YOU NOW HAVE 10 SECONDS TO CTRL-C BEFORE IT IS GONE FOREVER
     sleep 10
-    aws-vault exec "$2" -- aws ec2 terminate-instances --instance-ids "$ID"
-    rm ${JSON_FILE[$3]}
+    aws-vault exec $DEV -- aws ec2 terminate-instances --instance-ids "$ID"
+    rm ${JSON_FILE[$2]}
     echo
     echo ITS GONE NOW
     exit
     ;;
-    # 2 dev environment ex: dev-sandbox
-    # 4 serv #
+    # 2 serv #
 
 esac
 
 echo
-echo create-instance [dev environment] [key pair name] [how many?]
+echo create-instance [how many?]
 echo
-echo name [dev environment] [your name] [serv \#]
+echo name [serv \#]
 echo      - should now also upload \'setup\' dir to serv
 echo      - [serv \#] specifies name of json file saved during create-instance
 echo
-echo ssh [enviornment] [serv /#]
+echo ssh [serv /#]
 echo
-echo start [dev environment] [serv /#]
+echo start [serv /#]
 echo
-echo stop [dev environment] [serv /#]
+echo stop [serv /#]
 echo
-echo perm-delete [dev environment] [serv \#]
+echo perm-delete [serv \#]
 echo
