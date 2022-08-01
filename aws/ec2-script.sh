@@ -20,12 +20,16 @@ function file_index {
   fi
 }
 
+function setup {
+  # this will use gum to create a config file
+}
+
 JSON_FILE=('ins.json' 'ins2.json')
 INDEX=0
 
 # now included in script git
 case $1 in
-  'create-instance')
+  'c'|'create-instance')
     file_index  # must run at the begining of every time we dynamically check JSON_FILE
     aws-vault exec $2 -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $3 \
       --security-groups evandrake-bootcamp --user-data file://user-script.sh > ${JSON_FILE[$INDEX]}
@@ -35,7 +39,7 @@ case $1 in
     # 3 keypair
     # 4 how many?
 
-  'name')
+  'n'|'name')
     ID=$(cat ./${JSON_FILE[$4]} | jq '.Instances[0] .InstanceId' | tr -d '"') &&
     aws-vault exec $2 -- aws ec2 create-tags --resources ${ID} --tags "Key=Name,Value=$3"
     get_dns $2 $ID
@@ -50,7 +54,7 @@ case $1 in
     ID=$(cat ${JSON_FILE[$3]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     get_dns $2 $ID
     echo $DNS
-    ssh -i $AWS_KEY 'centos@'${DNS}
+    ssh -i $AWS_KEY 'centos@'$DNS
     exit
     ;;
     # 2 dev environnment ex: dev-sandbox
@@ -99,11 +103,11 @@ echo name [dev environment] [your name] [serv \#]
 echo      - should now also upload \'setup\' dir to serv
 echo      - [serv \#] specifies name of json file saved during create-instance
 echo
-echo "ssh[1|2] [serv #]<- configure to your instance"
+echo ssh [enviornment] [serv /#]
 echo
-echo "start <- [dev environment] [serv #]"
+echo start [dev environment] [serv /#]
 echo
-echo "stop <- [dev environment] [serv #]"
+echo stop [dev environment] [serv /#]
 echo
 echo perm-delete [dev environment] [serv \#]
 echo
