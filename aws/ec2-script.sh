@@ -60,7 +60,7 @@ case $1 in
     aws-vault exec $ENV -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $KEY_PAIR \
       --security-groups evandrake-bootcamp --user-data file://user-script.sh > ${JSON_FILE[$INDEX]}
     if [ $? -ne 0 ]; then #checks if command ran successfully success = 0 therefore if it isn't that remove those empty json files
-      rm ${JSON_FILE[$2]} 
+      rm ${JSON_FILE[$INDEX]} 
     fi
     exit
     ;;
