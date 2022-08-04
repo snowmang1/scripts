@@ -1,19 +1,15 @@
-
-AWS_KEY=evandrake-dob-pair.pem
 CONFIG=config.yml
 
 if [[ -f $CONFIG ]]; then
-  NAME=$( cat $CONFIG | yq '.name' )
-  ENV=$(  cat $CONFIG | yq '.env'  )
+  NAME=$( cat $CONFIG | yq '.name' ) ENV=$(  cat $CONFIG | yq '.env'  )
   KEY=$(  cat $CONFIG | yq '.key'  )
 fi
 
 function scp_up {
-  scp -i $AWS_KEY -r './setup' 'centos@'$1':~'
+  scp -i $KEY'.pem' -r './setup' 'centos@'$1':~'
 }
-
 function get_dns {
-  DNS=$(aws ec2 describe-instances --instance-ids $2 | yq '.Reservations[0] .Instances[0].NetworkInterfaces[0].Association.PublicDnsName' )
+  DNS=$(aws ec2 describe-instances --instance-ids $1 | yq '.Reservations[0] .Instances[0].NetworkInterfaces[0].Association.PublicDnsName' )
 }
 
 function file_index {
@@ -47,6 +43,15 @@ function setup {
   exit
 }
 
+function arg_check {
+  if [[ $# < 2 ]]; then
+    num=$(gum input --placeholder 'choose which instance <0> or <1>')
+  fi
+  while [[ $num != 0 && $num != 1 ]]; do
+    num=$(gum input --placeholder 'must choose either <0> or <1> as input')
+  done
+}
+
 JSON_FILE=('ins.json' 'ins2.json')
 INDEX=0
 
@@ -56,15 +61,16 @@ fi
 
 case $1 in
   
-  'assume-role')
-    aws-vault exec --duration ${2}h $ENV
+  'a'|'assume-role')
+    arg_check $2
+    aws-vault exec --duration ${num}h $ENV
     exit
     ;;
     #2 time
   
   'c'|'create-instance')
     file_index  # must run at the begining of every time we dynamically check JSON_FILE
-    aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $KEY_PAIR \
+    aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $KEY \
       --security-groups evandrake-bootcamp --user-data file://user-script.sh > ${JSON_FILE[$INDEX]}
     if [ $? -ne 0 ]; then #checks if command ran successfully success = 0 therefore if it isn't that remove those empty json files
       rm ${JSON_FILE[$INDEX]} 
@@ -73,8 +79,9 @@ case $1 in
     ;;
 
   'n'|'name')
-    ID=$(cat ./${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"') &&
-    aws ec2 create-tags --resources ${ID} --tags "Key=Name,Value=$NAME"
+    arg_check $2
+    ID=$(cat ./${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"') &&
+    aws ec2 create-tags --resources $ID --tags "Key=Name,Value=$NAME"
     get_dns $ID
     scp_up $DNS
     exit
@@ -82,7 +89,8 @@ case $1 in
     # 2 serv #
 
   'ssh')
-    ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
+    arg_check $2
+    ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     get_dns $ID
     echo $DNS
     ssh -i $AWS_KEY 'centos@'$DNS
@@ -91,42 +99,38 @@ case $1 in
     # 2 serv #
     
   'stop')
-    ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
+    arg_check $2
+    ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws ec2 stop-instances --instance-ids $ID
     exit
     ;;
     # 2 serv #
 
   'start')
-    ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
+    arg_check $2
+    ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws ec2 start-instances --instance-ids $ID
     exit
     ;;
     # 2 serv #
 
-  'perm-delete')
-    # CAREFULL
-    ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
-    echo CAREFULL MORON YOU ARE DELETING YOUR SERV "$ID"
-    echo
-    echo YOU NOW HAVE 10 SECONDS TO CTRL-C BEFORE IT IS GONE FOREVER
-    sleep 10
-    aws ec2 terminate-instances --instance-ids "$ID"
-    rm ${JSON_FILE[$2]}
-    echo
-    echo ITS GONE NOW
+  'd'|'perm-delete')
+    arg_check $2
+    ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
+    gum confirm 'Delete Instance ${ID}?' && aws ec2 terminate-instances --instance-ids "$ID" # confirm deletion
+    rm ${JSON_FILE[$num]}
     exit
     ;;
     # 2 serv #
 
 esac
 
-echo assume-role [time in hours] 
+echo a, assume-role [time in hours] 
 echo  - NOTE: Max Session 1 hour.
 echo
-echo create-instance [how many?]
+echo c, create-instance [how many?]
 echo
-echo name [serv \#]
+echo n, name [serv \#]
 echo      - should now also upload \'setup\' dir to serv
 echo      - [serv \#] specifies name of json file saved during create-instance
 echo
@@ -136,5 +140,5 @@ echo start [serv /#]
 echo
 echo stop [serv /#]
 echo
-echo perm-delete [serv \#]
+echo d, perm-delete [serv \#]
 echo
