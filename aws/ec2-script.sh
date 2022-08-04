@@ -13,7 +13,7 @@ function scp_up {
 }
 
 function get_dns {
-  DNS=$( aws-vault exec $1 -- aws ec2 describe-instances --instance-ids $2 | yq '.Reservations[0] .Instances[0].NetworkInterfaces[0].Association.PublicDnsName' )
+  DNS=$(aws ec2 describe-instances --instance-ids $2 | yq '.Reservations[0] .Instances[0].NetworkInterfaces[0].Association.PublicDnsName' )
 }
 
 function file_index {
@@ -55,9 +55,16 @@ if [[ ! -f config.yml ]]; then
 fi
 
 case $1 in
+  
+  'assume-role')
+    aws-vault exec --duration ${2}h $ENV
+    exit
+    ;;
+    #2 time
+  
   'c'|'create-instance')
     file_index  # must run at the begining of every time we dynamically check JSON_FILE
-    aws-vault exec $ENV -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $KEY_PAIR \
+    aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $KEY_PAIR \
       --security-groups evandrake-bootcamp --user-data file://user-script.sh > ${JSON_FILE[$INDEX]}
     if [ $? -ne 0 ]; then #checks if command ran successfully success = 0 therefore if it isn't that remove those empty json files
       rm ${JSON_FILE[$INDEX]} 
@@ -67,8 +74,8 @@ case $1 in
 
   'n'|'name')
     ID=$(cat ./${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"') &&
-    aws-vault exec $ENV -- aws ec2 create-tags --resources ${ID} --tags "Key=Name,Value=$NAME"
-    get_dns $ENV $ID
+    aws ec2 create-tags --resources ${ID} --tags "Key=Name,Value=$NAME"
+    get_dns $ID
     scp_up $DNS
     exit
     ;;
@@ -76,7 +83,7 @@ case $1 in
 
   'ssh')
     ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
-    get_dns $ENV $ID
+    get_dns $ID
     echo $DNS
     ssh -i $AWS_KEY 'centos@'$DNS
     exit
@@ -85,14 +92,14 @@ case $1 in
     
   'stop')
     ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
-    aws-vault exec $ENV -- aws ec2 stop-instances --instance-ids $ID
+    aws ec2 stop-instances --instance-ids $ID
     exit
     ;;
     # 2 serv #
 
   'start')
     ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
-    aws-vault exec $DEV -- aws ec2 start-instances --instance-ids $ID
+    aws ec2 start-instances --instance-ids $ID
     exit
     ;;
     # 2 serv #
@@ -104,7 +111,7 @@ case $1 in
     echo
     echo YOU NOW HAVE 10 SECONDS TO CTRL-C BEFORE IT IS GONE FOREVER
     sleep 10
-    aws-vault exec $DEV -- aws ec2 terminate-instances --instance-ids "$ID"
+    aws ec2 terminate-instances --instance-ids "$ID"
     rm ${JSON_FILE[$2]}
     echo
     echo ITS GONE NOW
@@ -114,6 +121,8 @@ case $1 in
 
 esac
 
+echo assume-role [time in hours] 
+echo  - NOTE: Max Session 1 hour.
 echo
 echo create-instance [how many?]
 echo
