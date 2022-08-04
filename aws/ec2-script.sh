@@ -2,7 +2,8 @@ CONFIG=config.yml
 
 if [[ -f $CONFIG ]]; then
   NAME=$( cat $CONFIG | yq '.name' ) ENV=$(  cat $CONFIG | yq '.env'  )
-  KEY=$(  cat $CONFIG | yq '.key'  )
+  KEY=$(  cat $CONFIG | yq '.key'  ) GRP=$(  cat $CONFIG | yq '.grp'   )
+  AMI=$(  cat $CONFIG | yq '.ami'   ) USR_DATA=$( cat $CONFIG | yq '.user_data')
 fi
 
 function scp_up {
@@ -34,12 +35,21 @@ function setup {
   NAME=$(gum input --placeholder "name")
   ENV=$(gum input --placeholder "environment")
   KEY=$(gum input --placeholder "key pair minus the '.pem'")
+  GRP=$(gum input --placeholder "security group")
+  AMI=$(gum input --placeholder "AMI id")
+  USR_DATA=$(gum input --placeholder "user data script")
   echo name:        >>    $CONFIG
   echo "    "$NAME  >>    $CONFIG
   echo env:         >>    $CONFIG
   echo "    "$ENV   >>    $CONFIG
   echo key:         >>    $CONFIG
   echo "    "$KEY   >>    $CONFIG
+  echo grp:               $CONFIG
+  echo "    "$GRP   >>    $CONFIG
+  echo ami:               $CONFIG
+  echo "    "$AMI   >>    $CONFIG
+  echo user_data:         $CONFIG
+  echo "    "$USR_DATA >> $CONFIG
   exit
 }
 
@@ -70,8 +80,8 @@ case $1 in
   
   'c'|'create-instance')
     file_index  # must run at the begining of every time we dynamically check JSON_FILE
-    aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $KEY \
-      --security-groups evandrake-bootcamp --user-data file://user-script.sh > ${JSON_FILE[$INDEX]}
+    aws ec2 run-instances --image-id $AMI --count 1 --instance-type t2.micro --key-name  $KEY \
+      --security-groups $GRP --user-data file://$USR_DATA > ${JSON_FILE[$INDEX]}
     if [ $? -ne 0 ]; then #checks if command ran successfully success = 0 therefore if it isn't that remove those empty json files
       rm ${JSON_FILE[$INDEX]} 
     fi
@@ -127,8 +137,8 @@ case $1 in
   'd'|'perm-delete')
     arg_check $2
     ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
-    gum confirm 'Delete Instance ${ID}?' && aws ec2 terminate-instances --instance-ids "$ID" \ && # confirm deletion
-    rm ${JSON_FILE[$num]}
+    echo $ID
+    gum confirm 'Delete Instance ${ID}?' && aws ec2 terminate-instances --instance-ids "$ID" && rm ${JSON_FILE[$num]} #confirm deletion
     exit
     ;;
     # 2 serv #
