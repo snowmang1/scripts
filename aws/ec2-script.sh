@@ -8,7 +8,6 @@ fi
 function scp_up {
   scp -i $KEY'.pem' -r './setup' 'centos@'$1':~'
 }
-
 function get_dns {
   DNS=$(aws ec2 describe-instances --instance-ids $1 | yq '.Reservations[0] .Instances[0].NetworkInterfaces[0].Association.PublicDnsName' )
 }
@@ -63,7 +62,8 @@ fi
 case $1 in
   
   'a'|'assume-role')
-    aws-vault exec --duration ${2}h $ENV
+    arg_check $2
+    aws-vault exec --duration ${num}h $ENV
     exit
     ;;
     #2 time
