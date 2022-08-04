@@ -1,5 +1,3 @@
-
-AWS_KEY=evandrake-dob-pair.pem
 CONFIG=config.yml
 
 if [[ -f $CONFIG ]]; then
@@ -9,11 +7,11 @@ if [[ -f $CONFIG ]]; then
 fi
 
 function scp_up {
-  scp -i $AWS_KEY -r './setup' 'centos@'$1':~'
+  scp -i $KEY'.pem' -r './setup' 'centos@'$1':~'
 }
 
 function get_dns {
-  DNS=$(aws ec2 describe-instances --instance-ids $2 | yq '.Reservations[0] .Instances[0].NetworkInterfaces[0].Association.PublicDnsName' )
+  DNS=$(aws ec2 describe-instances --instance-ids $1 | yq '.Reservations[0] .Instances[0].NetworkInterfaces[0].Association.PublicDnsName' )
 }
 
 function file_index {
@@ -56,7 +54,7 @@ fi
 
 case $1 in
   
-  'assume-role')
+  'a'|'assume-role')
     aws-vault exec --duration ${2}h $ENV
     exit
     ;;
@@ -64,7 +62,7 @@ case $1 in
   
   'c'|'create-instance')
     file_index  # must run at the begining of every time we dynamically check JSON_FILE
-    aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $KEY_PAIR \
+    aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $KEY \
       --security-groups evandrake-bootcamp --user-data file://user-script.sh > ${JSON_FILE[$INDEX]}
     if [ $? -ne 0 ]; then #checks if command ran successfully success = 0 therefore if it isn't that remove those empty json files
       rm ${JSON_FILE[$INDEX]} 
@@ -73,8 +71,12 @@ case $1 in
     ;;
 
   'n'|'name')
-    ID=$(cat ./${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"') &&
-    aws ec2 create-tags --resources ${ID} --tags "Key=Name,Value=$NAME"
+    num=$2
+    if [[ $num -ne 0 || $num -ne 1 ]]; then
+      num=$(gum input --placeholder 'choose which instance <0> or <1>')
+    fi
+    ID=$(cat ./${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"') &&
+    aws ec2 create-tags --resources $ID --tags "Key=Name,Value=$NAME"
     get_dns $ID
     scp_up $DNS
     exit
