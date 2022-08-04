@@ -1,8 +1,7 @@
 CONFIG=config.yml
 
 if [[ -f $CONFIG ]]; then
-  NAME=$( cat $CONFIG | yq '.name' )
-  ENV=$(  cat $CONFIG | yq '.env'  )
+  NAME=$( cat $CONFIG | yq '.name' ) ENV=$(  cat $CONFIG | yq '.env'  )
   KEY=$(  cat $CONFIG | yq '.key'  )
 fi
 
@@ -45,6 +44,15 @@ function setup {
   exit
 }
 
+function arg_check {
+  if [[ $# < 2 ]]; then
+    num=$(gum input --placeholder 'choose which instance <0> or <1>')
+  fi
+  while [[ $num != 0 && $num != 1 ]]; do
+    num=$(gum input --placeholder 'must choose either <0> or <1> as input')
+  done
+}
+
 JSON_FILE=('ins.json' 'ins2.json')
 INDEX=0
 
@@ -71,10 +79,7 @@ case $1 in
     ;;
 
   'n'|'name')
-    num=$2
-    if [[ $num -ne 0 || $num -ne 1 ]]; then
-      num=$(gum input --placeholder 'choose which instance <0> or <1>')
-    fi
+    arg_check $2
     ID=$(cat ./${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"') &&
     aws ec2 create-tags --resources $ID --tags "Key=Name,Value=$NAME"
     get_dns $ID
@@ -84,7 +89,8 @@ case $1 in
     # 2 serv #
 
   'ssh')
-    ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
+    arg_check $2
+    ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     get_dns $ID
     echo $DNS
     ssh -i $AWS_KEY 'centos@'$DNS
@@ -93,42 +99,38 @@ case $1 in
     # 2 serv #
     
   'stop')
-    ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
+    arg_check $2
+    ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws ec2 stop-instances --instance-ids $ID
     exit
     ;;
     # 2 serv #
 
   'start')
-    ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
+    arg_check $2
+    ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws ec2 start-instances --instance-ids $ID
     exit
     ;;
     # 2 serv #
 
-  'perm-delete')
-    # CAREFULL
-    ID=$(cat ${JSON_FILE[$2]} | jq '.Instances[0] .InstanceId' | tr -d '"')
-    echo CAREFULL MORON YOU ARE DELETING YOUR SERV "$ID"
-    echo
-    echo YOU NOW HAVE 10 SECONDS TO CTRL-C BEFORE IT IS GONE FOREVER
-    sleep 10
-    aws ec2 terminate-instances --instance-ids "$ID"
-    rm ${JSON_FILE[$2]}
-    echo
-    echo ITS GONE NOW
+  'd'|'perm-delete')
+    arg_check $2
+    ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
+    gum confirm 'Delete Instance ${ID}?' && aws ec2 terminate-instances --instance-ids "$ID" # confirm deletion
+    rm ${JSON_FILE[$num]}
     exit
     ;;
     # 2 serv #
 
 esac
 
-echo assume-role [time in hours] 
+echo a, assume-role [time in hours] 
 echo  - NOTE: Max Session 1 hour.
 echo
-echo create-instance [how many?]
+echo c, create-instance [how many?]
 echo
-echo name [serv \#]
+echo n, name [serv \#]
 echo      - should now also upload \'setup\' dir to serv
 echo      - [serv \#] specifies name of json file saved during create-instance
 echo
@@ -138,5 +140,5 @@ echo start [serv /#]
 echo
 echo stop [serv /#]
 echo
-echo perm-delete [serv \#]
+echo d, perm-delete [serv \#]
 echo
