@@ -36,7 +36,7 @@ function setup {
   fi
   # this will use gum to create a config file
   NAME=$(gum input --placeholder "name")
-  ENV=$(gum input --placeholder "enviornment")
+  ENV=$(gum input --placeholder "environment")
   KEY=$(gum input --placeholder "key pair minus the '.pem'")
   echo name:        >>    $CONFIG
   echo "    "$NAME  >>    $CONFIG
@@ -59,6 +59,9 @@ case $1 in
     file_index  # must run at the begining of every time we dynamically check JSON_FILE
     aws-vault exec $ENV -- aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $KEY_PAIR \
       --security-groups evandrake-bootcamp --user-data file://user-script.sh > ${JSON_FILE[$INDEX]}
+    if [ $? -ne 0 ]; then #checks if command ran successfully success = 0 therefore if it isn't that remove those empty json files
+      rm ${JSON_FILE[$2]} 
+    fi
     exit
     ;;
 
