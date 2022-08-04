@@ -114,10 +114,20 @@ case $1 in
     ;;
     # 2 serv #
 
+  'clear-role')
+    JOB_STR=$(bash pid-script.sh)
+    if [ ! -z ${JOB_STR} ]; then
+      gum confirm 'Clear the assumed role?' && kill -9 $JOB_STR # confirm role clearing
+    else
+      echo "Role does not exist."
+    fi
+    exit
+    ;;
+
   'd'|'perm-delete')
     arg_check $2
     ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
-    gum confirm 'Delete Instance ${ID}?' && aws ec2 terminate-instances --instance-ids "$ID" # confirm deletion
+    gum confirm 'Delete Instance ${ID}?' && aws ec2 terminate-instances --instance-ids "$ID" \ && # confirm deletion
     rm ${JSON_FILE[$num]}
     exit
     ;;
@@ -139,6 +149,8 @@ echo
 echo start [serv /#]
 echo
 echo stop [serv /#]
+echo
+echo clear-role - clears the aws assumed role
 echo
 echo d, perm-delete [serv \#]
 echo
