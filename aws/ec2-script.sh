@@ -157,8 +157,8 @@ case $1 in
 
   'clear-role')
     JOB_STR=$(bash pid-script.sh)
-    if [ ! -z ${JOB_STR} ]; then
-      gum confirm 'Clear the assumed role?' && kill -9 $JOB_STR # confirm role clearing
+    if [[ ! -z ${JOB_STR} ]]; then
+      gum confirm 'Clear the assumed role?' && kill -9 $JOB_STR 2> /dev/null # confirm role clearing
     else
       echo "Role does not exist."
     fi
