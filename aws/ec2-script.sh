@@ -45,7 +45,7 @@ function setup {
 
 function arg_check {
   if [[ $# < 2 ]]; then
-    num=$(gum input --placeholder 'choose which instance <0> or <1>')
+    num=$(gum input --placeholder 'choose <0> or <1>')
   fi
   while [[ $num != 0 && $num != 1 ]]; do
     num=$(gum input --placeholder 'must choose either <0> or <1> as input')
@@ -54,7 +54,7 @@ function arg_check {
 
 function pop_ar {
   #populate array of json config files
-  ar=(ls -p | grep -v / | grep '.json')
+  ar=$(ls -p | grep -v / | grep '.json')
   JSON_FILE=(`echo $ar`) # seporates ar in an array by spaces or \n
 }
 function new_ar {
@@ -87,7 +87,7 @@ case $1 in
     aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $KEY \
       --security-groups evandrake-bootcamp --user-data file://user-script.sh > $NEW_FILE
     if [ $? -ne 0 ]; then #checks if command ran successfully success = 0 therefore if it isn't that remove those empty json files
-      rm ${JSON_FILE[$INDEX]} 
+      rm $NEW_FILE
     fi
     exit
     ;;
