@@ -1,3 +1,3 @@
 syntax on
-colo zellner
+colorscheme zellner
 set number
