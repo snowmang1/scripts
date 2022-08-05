@@ -12,7 +12,7 @@ function scp_up {
 }
 
 function get_dns {
-  DNS=$(aws ec2 describe-instances --instance-ids $1 | yq '.Reservations[0] .Instances[0].NetworkInterfaces[0].Association.PublicDnsName' )
+  DNS=$(aws ec2 describe-instances --instance-ids $1 | yq '.Reservations[0] .Instances[0].NetworkInterfaces[0].Association.PublicDnsName')
 }
 
 function file_index {
@@ -47,23 +47,24 @@ function setup {
   echo "    "$ENV   >>    $CONFIG
   echo key:         >>    $CONFIG
   echo "    "$KEY   >>    $CONFIG
-  echo grp:               $CONFIG
+  echo grp:         >>    $CONFIG
   echo "    "$GRP   >>    $CONFIG
-  echo ami:               $CONFIG
+  echo ami:         >>    $CONFIG
   echo "    "$AMI   >>    $CONFIG
-  echo user_data:         $CONFIG
+  echo user_data:   >>    $CONFIG
   echo "    "$USR_DATA >> $CONFIG
-  echo ssh_user:          $CONFIG
+  echo ssh_user:   >>     $CONFIG
   echo "    "$SSH_USER >> $CONFIG
   exit
 }
 
 function arg_check {
+  local ar_len=${#JSON_FILE[*]}
   if [[ $# < 2 ]]; then
-    num=$(gum input --placeholder 'input is between 1 and ${!JSON_FILE[*]} inclusive')
+    num=$(gum input --placeholder "input is between 0 and ${ar_len} inclusive")
   fi
-  while [[ $num > 0 && $num < ${!JSON_FILE[*]} ]]; do
-    num=$(gum input --placeholder 'input needs to be between 1 and ${!JSON_FILE[*]} inclusive')
+  while (( $num < 0 )) || (( $num > ${#JSON_FILE[*]} )) ; do
+    num=$(gum input --placeholder "input needs to be between 0 and ${ar_len} inclusive")
   done
 }
 
@@ -116,16 +117,18 @@ case $1 in
     ;;
 
   'n'|'name')
+    pop_ar
     arg_check $2
-    ID=$(cat ./${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"') &&
-    aws ec2 create-tags --resources $ID --tags "Key=Name,Value=$NAME"
-    get_dns $ID
+    ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"') && \
+    aws ec2 create-tags --resources $ID --tags "Key=Name,Value=$NAME" && \
+    get_dns $ID && \
     scp_up $DNS
     exit
     ;;
     # 2 serv #
 
   'ssh')
+    pop_ar
     arg_check $2
     ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     get_dns $ID
@@ -135,6 +138,7 @@ case $1 in
     # 2 serv #
     
   'stop')
+    pop_ar
     arg_check $2
     ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws ec2 stop-instances --instance-ids $ID
@@ -143,6 +147,7 @@ case $1 in
     # 2 serv #
 
   'start')
+    pop_ar
     arg_check $2
     ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     aws ec2 start-instances --instance-ids $ID
@@ -161,6 +166,7 @@ case $1 in
     ;;
 
   'd'|'perm-delete')
+    pop_ar
     arg_check $2
     ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     gum confirm 'Delete Instance ${ID}?' && aws ec2 terminate-instances --instance-ids "$ID" && rm ${JSON_FILE[$num]} #confirm deletion
