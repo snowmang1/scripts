@@ -45,10 +45,10 @@ function setup {
 
 function arg_check {
   if [[ $# < 2 ]]; then
-    num=$(gum input --placeholder 'choose <0> or <1>')
+    num=$(gum input --placeholder 'input is between 1 and ${!JSON_FILE[*]} inclusive')
   fi
-  while [[ $num != 0 && $num != 1 ]]; do
-    num=$(gum input --placeholder 'must choose either <0> or <1> as input')
+  while [[ $num > 0 && $num < ${!JSON_FILE[*]} ]]; do
+    num=$(gum input --placeholder 'input needs to be between 1 and ${!JSON_FILE[*]} inclusive')
   done
 }
 
@@ -74,7 +74,14 @@ fi
 case $1 in
   
   'a'|'assume-role')
-    arg_check $2
+    if [[ $# < 2 ]]; then
+      num=$(gum input --placeholder 'input must be either 0 or 1')
+    else
+      num=$2
+    fi
+    while [[ num == 1 || num == 0 ]]; do
+      num=$(gum input --placeholder 'input needs to be either 0 or 1')
+    done
     aws-vault exec --duration ${num}h $ENV
     exit
     ;;
