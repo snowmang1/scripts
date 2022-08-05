@@ -52,7 +52,19 @@ function arg_check {
   done
 }
 
-JSON_FILE=('ins.json' 'ins2.json')
+function pop_ar {
+  #populate array of json config files
+  ar=(ls -p | grep -v / | grep '.json')
+  JSON_FILE=(`echo $ar`) # seporates ar in an array by spaces or \n
+}
+function new_ar {
+  #creates name for new json conf file
+  local num=${#JSON_FILE[*]}
+  num=$((num + 1)) # arithmatic
+  NEW_FILE="ins${num}.json" #new files differ by number
+}
+
+JSON_FILE=()
 INDEX=0
 
 if [[ ! -f config.yml ]]; then
@@ -70,8 +82,10 @@ case $1 in
   
   'c'|'create-instance')
     file_index  # must run at the begining of every time we dynamically check JSON_FILE
+    pop_ar      # must run b/c JSON_FILE will alwase start empty
+    new_ar      # has to run to get file name
     aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $KEY \
-      --security-groups evandrake-bootcamp --user-data file://user-script.sh > ${JSON_FILE[$INDEX]}
+      --security-groups evandrake-bootcamp --user-data file://user-script.sh > $NEW_FILE
     if [ $? -ne 0 ]; then #checks if command ran successfully success = 0 therefore if it isn't that remove those empty json files
       rm ${JSON_FILE[$INDEX]} 
     fi
