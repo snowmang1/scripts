@@ -60,14 +60,26 @@ function setup {
 
 function arg_check {
   if [[ $# < 2 ]]; then
-    num=$(gum input --placeholder 'choose which instance <0> or <1>')
+    num=$(gum input --placeholder 'input is between 1 and ${!JSON_FILE[*]} inclusive')
   fi
-  while [[ $num != 0 && $num != 1 ]]; do
-    num=$(gum input --placeholder 'must choose either <0> or <1> as input')
+  while [[ $num > 0 && $num < ${!JSON_FILE[*]} ]]; do
+    num=$(gum input --placeholder 'input needs to be between 1 and ${!JSON_FILE[*]} inclusive')
   done
 }
 
-JSON_FILE=('ins.json' 'ins2.json')
+function pop_ar {
+  #populate array of json config files
+  ar=$(ls -p | grep -v / | grep '.json')
+  JSON_FILE=(`echo $ar`) # seporates ar in an array by spaces or \n
+}
+function new_ar {
+  #creates name for new json conf file
+  local num=${#JSON_FILE[*]}
+  num=$((num + 1)) # arithmatic
+  NEW_FILE="ins${num}.json" #new files differ by number
+}
+
+JSON_FILE=()
 INDEX=0
 
 if [[ ! -f config.yml ]]; then
@@ -77,7 +89,14 @@ fi
 case $1 in
   
   'a'|'assume-role')
-    arg_check $2
+    if [[ $# < 2 ]]; then
+      num=$(gum input --placeholder 'input must be either 0 or 1')
+    else
+      num=$2
+    fi
+    while [[ num == 1 || num == 0 ]]; do
+      num=$(gum input --placeholder 'input needs to be either 0 or 1')
+    done
     aws-vault exec --duration ${num}h $ENV
     exit
     ;;
@@ -85,10 +104,13 @@ case $1 in
   
   'c'|'create-instance')
     file_index  # must run at the begining of every time we dynamically check JSON_FILE
+    pop_ar      # must run b/c JSON_FILE will alwase start empty
+    new_ar      # has to run to get file name
     aws ec2 run-instances --image-id $AMI --count 1 --instance-type t2.micro --key-name  $KEY \
-      --security-groups $GRP --user-data file://$USR_DATA > ${JSON_FILE[$INDEX]}
+      --security-groups $GRP --user-data file://$USR_DATA > $NEW_FILE
+
     if [ $? -ne 0 ]; then #checks if command ran successfully success = 0 therefore if it isn't that remove those empty json files
-      rm ${JSON_FILE[$INDEX]} 
+      rm $NEW_FILE
     fi
     exit
     ;;
