@@ -2,12 +2,15 @@ CONFIG=config.yml
 
 if [[ -f $CONFIG ]]; then
   NAME=$( cat $CONFIG | yq '.name' ) ENV=$(  cat $CONFIG | yq '.env'  )
-  KEY=$(  cat $CONFIG | yq '.key'  )
+  KEY=$(  cat $CONFIG | yq '.key'  ) GRP=$(  cat $CONFIG | yq '.grp'  )
+  AMI=$(  cat $CONFIG | yq '.ami'  ) USR_DATA=$( cat $CONFIG | yq '.user_data'  )
+  SSH_USER=$(   cat $CONFIG | yq '.ssh_user'  )
 fi
 
 function scp_up {
-  scp -i $KEY'.pem' -r './setup' 'centos@'$1':~'
+  scp -i $KEY'.pem' -r './setup' $SSH_USER'@'$1':~'
 }
+
 function get_dns {
   DNS=$(aws ec2 describe-instances --instance-ids $1 | yq '.Reservations[0] .Instances[0].NetworkInterfaces[0].Association.PublicDnsName' )
 }
@@ -34,12 +37,24 @@ function setup {
   NAME=$(gum input --placeholder "name")
   ENV=$(gum input --placeholder "environment")
   KEY=$(gum input --placeholder "key pair minus the '.pem'")
+  GRP=$(gum input --placeholder "security group")
+  AMI=$(gum input --placeholder "AMI id")
+  USR_DATA=$(gum input --placeholder "user data script")
+  SSH_USER=$(gum input --placeholder "ssh username")
   echo name:        >>    $CONFIG
   echo "    "$NAME  >>    $CONFIG
   echo env:         >>    $CONFIG
   echo "    "$ENV   >>    $CONFIG
   echo key:         >>    $CONFIG
   echo "    "$KEY   >>    $CONFIG
+  echo grp:               $CONFIG
+  echo "    "$GRP   >>    $CONFIG
+  echo ami:               $CONFIG
+  echo "    "$AMI   >>    $CONFIG
+  echo user_data:         $CONFIG
+  echo "    "$USR_DATA >> $CONFIG
+  echo ssh_user:          $CONFIG
+  echo "    "$SSH_USER >> $CONFIG
   exit
 }
 
@@ -91,8 +106,9 @@ case $1 in
     file_index  # must run at the begining of every time we dynamically check JSON_FILE
     pop_ar      # must run b/c JSON_FILE will alwase start empty
     new_ar      # has to run to get file name
-    aws ec2 run-instances --image-id ami-02eac2c0129f6376b --count 1 --instance-type t2.micro --key-name  $KEY \
-      --security-groups evandrake-bootcamp --user-data file://user-script.sh > $NEW_FILE
+    aws ec2 run-instances --image-id $AMI --count 1 --instance-type t2.micro --key-name  $KEY \
+      --security-groups $GRP --user-data file://$USR_DATA > $NEW_FILE
+
     if [ $? -ne 0 ]; then #checks if command ran successfully success = 0 therefore if it isn't that remove those empty json files
       rm $NEW_FILE
     fi
@@ -113,8 +129,7 @@ case $1 in
     arg_check $2
     ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
     get_dns $ID
-    echo $DNS
-    ssh -i $AWS_KEY 'centos@'$DNS
+    ssh -i $KEY'.pem' $SSH_USER'@'$DNS
     exit
     ;;
     # 2 serv #
@@ -135,11 +150,20 @@ case $1 in
     ;;
     # 2 serv #
 
+  'clear-role')
+    JOB_STR=$(bash pid-script.sh)
+    if [ ! -z ${JOB_STR} ]; then
+      gum confirm 'Clear the assumed role?' && kill -9 $JOB_STR # confirm role clearing
+    else
+      echo "Role does not exist."
+    fi
+    exit
+    ;;
+
   'd'|'perm-delete')
     arg_check $2
     ID=$(cat ${JSON_FILE[$num]} | jq '.Instances[0] .InstanceId' | tr -d '"')
-    gum confirm 'Delete Instance ${ID}?' && aws ec2 terminate-instances --instance-ids "$ID" # confirm deletion
-    rm ${JSON_FILE[$num]}
+    gum confirm 'Delete Instance ${ID}?' && aws ec2 terminate-instances --instance-ids "$ID" && rm ${JSON_FILE[$num]} #confirm deletion
     exit
     ;;
     # 2 serv #
@@ -160,6 +184,8 @@ echo
 echo start [serv /#]
 echo
 echo stop [serv /#]
+echo
+echo clear-role - clears the aws assumed role
 echo
 echo d, perm-delete [serv \#]
 echo
