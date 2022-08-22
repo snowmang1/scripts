@@ -1,16 +1,9 @@
 #!/bin/bash
-yum update -y
-
-# Tomcatv7
-yum install -y tomcat maven wget git
-systemctl start tomcat
-systemctl enable tomcat
-
-# git clone spring-petclinic
-git clone https://github.com/liatrio/spring-petclinic.git
-cd spring-petclinic
-
-# package pet clinic
-mvn clean package && \
-cp target/petclinic.war /var/lib/tomcat/webapps/ && \
-systemctl restart tomcat
+echo "ECS_CLUSTER=evandrake-dob-ecs-bootcamp" >> /etc/ecs/ecs.config
+#sudo yum update -y ecs-init
+##this will update ECS agent, better when using custom AMI
+#/usr/bin/docker pull amazon/amazon-ecs-agent:latest
+#Restart docker and ECS agent
+sudo service docker restart
+#sudo start ecs
+shutdown -r 0
